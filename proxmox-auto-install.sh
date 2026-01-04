@@ -295,8 +295,12 @@ select_option() {
 
 # Función para obtener el siguiente ID disponible
 get_next_available_id() {
-    # Obtener el ID más alto de contenedores existentes
-    local max_id=$(pct list 2>/dev/null | tail -n +2 | awk '{print $1}' | sort -n | tail -1)
+    # Obtener IDs de contenedores LXC y VMs
+    local lxc_ids=$(pct list 2>/dev/null | tail -n +2 | awk '{print $1}')
+    local vm_ids=$(qm list 2>/dev/null | tail -n +2 | awk '{print $1}')
+
+    # Combinar y encontrar el máximo
+    local max_id=$(echo -e "$lxc_ids\n$vm_ids" | grep -E '^[0-9]+$' | sort -n | tail -1)
 
     if [ -z "$max_id" ]; then
         echo 100
