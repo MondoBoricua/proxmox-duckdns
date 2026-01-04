@@ -4,6 +4,10 @@
 # Se ejecuta desde el host Proxmox y crea todo automáticamente
 # Automatic DuckDNS installer for Proxmox - Creates LXC container automatically
 
+# Silenciar warnings de locale
+export LC_ALL=C
+export LANG=C
+
 # Colores / Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -64,6 +68,7 @@ if [[ "$LANG" == "es" ]]; then
     TXT_CONTAINER_ID="ID del contenedor"
     TXT_CONTAINER_NAME="Nombre del contenedor"
     TXT_ROOT_PASSWORD="Contraseña root"
+    TXT_PASSWORD_SHORT="La contraseña debe tener al menos 5 caracteres"
     TXT_ID_EXISTS="El contenedor ID ya existe"
     TXT_CHOOSE_OTHER="Elige otro ID"
     TXT_STORAGE_AVAILABLE="Almacenamientos disponibles:"
@@ -98,6 +103,8 @@ if [[ "$LANG" == "es" ]]; then
     TXT_DOWNLOADED="Template descargado:"
     TXT_TEMPLATE_FOUND="Template encontrado:"
     TXT_CREATED="Contenedor creado exitosamente"
+    TXT_CREATE_FAILED="Error al crear el contenedor. Verifica los parámetros."
+    TXT_STARTING_CONTAINER="Iniciando contenedor..."
     TXT_CRON="Configurando cron para actualización automática..."
     TXT_FIRST_UPDATE="Probando primera actualización..."
     TXT_UPDATE_OK="Primera actualización exitosa:"
@@ -139,6 +146,7 @@ else
     TXT_CONTAINER_ID="Container ID"
     TXT_CONTAINER_NAME="Container name"
     TXT_ROOT_PASSWORD="Root password"
+    TXT_PASSWORD_SHORT="Password must be at least 5 characters"
     TXT_ID_EXISTS="Container ID already exists"
     TXT_CHOOSE_OTHER="Choose another ID"
     TXT_STORAGE_AVAILABLE="Available storage:"
@@ -173,6 +181,8 @@ else
     TXT_DOWNLOADED="Template downloaded:"
     TXT_TEMPLATE_FOUND="Template found:"
     TXT_CREATED="Container created successfully"
+    TXT_CREATE_FAILED="Failed to create container. Check parameters."
+    TXT_STARTING_CONTAINER="Starting container..."
     TXT_CRON="Configuring cron for automatic updates..."
     TXT_FIRST_UPDATE="Testing first update..."
     TXT_UPDATE_OK="First update successful:"
@@ -330,6 +340,12 @@ read_input "$TXT_CONTAINER_ID" "$NEXT_ID" "CONTAINER_ID" "true"
 read_input "$TXT_CONTAINER_NAME" "duckdns" "CONTAINER_HOSTNAME" "false"
 read_input "$TXT_ROOT_PASSWORD" "duckdns" "CONTAINER_PASSWORD" "false"
 
+# Validar longitud mínima de contraseña (Proxmox requiere mínimo 5 caracteres)
+while [ ${#CONTAINER_PASSWORD} -lt 5 ]; do
+    show_error "$TXT_PASSWORD_SHORT"
+    read_input "$TXT_ROOT_PASSWORD" "duckdns" "CONTAINER_PASSWORD" "false"
+done
+
 # Verificar que el ID no exista
 if pct status $CONTAINER_ID &> /dev/null; then
     show_error "$TXT_ID_EXISTS: $CONTAINER_ID"
@@ -427,24 +443,24 @@ echo ""
 show_info "$TXT_STEP_TEMPLATES"
 echo ""
 echo -e "${WHITE}$TXT_TEMPLATES${NC}"
-pct template list | head -10
+pveam list local 2>/dev/null | tail -n +2
 
 # Buscar templates disponibles en orden de preferencia
 TEMPLATE=""
 
 # Primero intentar Ubuntu 22.04
-TEMPLATE=$(pct template list | grep -i ubuntu | grep -E "(22\.04|22-04)" | head -1 | awk '{print $2}')
+TEMPLATE=$(pveam list local 2>/dev/null | grep -i ubuntu | grep -E "(22\.04|22-04)" | head -1 | awk '{print $1}' | sed 's|local:vztmpl/||')
 if [ -n "$TEMPLATE" ]; then
     show_success "$TXT_USING_UBUNTU $TEMPLATE"
 else
     # Si no hay Ubuntu, buscar Debian 12 o 13
-    TEMPLATE=$(pct template list | grep -i debian | grep -E "(1[23]|1[23]\.)" | head -1 | awk '{print $2}')
+    TEMPLATE=$(pveam list local 2>/dev/null | grep -i debian | grep -E "(1[23]|1[23]\.)" | head -1 | awk '{print $1}' | sed 's|local:vztmpl/||')
     if [ -n "$TEMPLATE" ]; then
         show_success "$TXT_USING_DEBIAN $TEMPLATE"
         show_info "$TXT_DEBIAN_NOTE"
     else
         # Buscar cualquier template de Ubuntu o Debian reciente
-        TEMPLATE=$(pct template list | grep -iE "(ubuntu|debian)" | head -1 | awk '{print $2}')
+        TEMPLATE=$(pveam list local 2>/dev/null | grep -iE "(ubuntu|debian)" | head -1 | awk '{print $1}' | sed 's|local:vztmpl/||')
         if [ -n "$TEMPLATE" ]; then
             show_success "$TXT_USING_OTHER $TEMPLATE"
             show_info "$TXT_OTHER_NOTE"
@@ -468,23 +484,33 @@ fi
 
 show_info "$TXT_STEP_CREATE"
 # Crear el contenedor LXC con autoboot habilitado
-pct create $CONTAINER_ID local:vztmpl/$TEMPLATE \
+if ! pct create $CONTAINER_ID local:vztmpl/$TEMPLATE \
     --hostname $CONTAINER_HOSTNAME \
     --memory $CONTAINER_MEMORY \
     --cores $CONTAINER_CORES \
     --rootfs $STORAGE:$CONTAINER_DISK \
     --net0 name=eth0,bridge=$NETWORK_BRIDGE,ip=dhcp \
-    --password $CONTAINER_PASSWORD \
+    --password "$CONTAINER_PASSWORD" \
     --start 1 \
     --onboot 1 \
     --unprivileged 1 \
-    --features nesting=1
+    --features nesting=1; then
+    show_error "$TXT_CREATE_FAILED"
+    exit 1
+fi
 
 show_success "$TXT_CREATED: $CONTAINER_ID"
 
 # Esperar a que el contenedor esté listo
 show_info "$TXT_STEP_WAIT"
-sleep 30
+sleep 15
+
+# Verificar que el contenedor está corriendo
+if ! pct status $CONTAINER_ID 2>/dev/null | grep -q "running"; then
+    show_info "$TXT_STARTING_CONTAINER"
+    pct start $CONTAINER_ID
+    sleep 10
+fi
 
 # Función para ejecutar comandos en el contenedor
 run_in_container() {
