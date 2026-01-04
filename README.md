@@ -20,7 +20,7 @@ An automated script to configure DuckDNS in Proxmox LXC containers, perfect for 
 ### 📋 Requirements
 
 - **Proxmox VE** (any recent version)
-- **LXC Template** (Ubuntu 22.04 or Debian 12 - auto-detected)
+- **LXC Template** (Ubuntu 22.04 or Debian 12/13 - auto-detected)
 - **DuckDNS Token** (get it from [duckdns.org](https://www.duckdns.org))
 - **Registered subdomain** on DuckDNS
 
@@ -88,7 +88,7 @@ Continue with installation? [Y/n]:
 ### 🔧 What the Script Does
 
 1. ✅ Creates LXC container automatically
-2. ✅ Detects and uses best available template (Ubuntu 22.04 or Debian 12)
+2. ✅ Detects and uses best available template (Ubuntu 22.04 or Debian 12/13)
 3. ✅ Configures network and storage
 4. ✅ Installs and configures DuckDNS
 5. ✅ Sets up cron for automatic updates every 5 minutes
@@ -141,7 +141,7 @@ Un script automatizado para configurar DuckDNS en contenedores LXC de Proxmox, p
 ### 📋 Requisitos
 
 - **Proxmox VE** (cualquier versión reciente)
-- **Template LXC** (Ubuntu 22.04 o Debian 12 - se detecta automáticamente)
+- **Template LXC** (Ubuntu 22.04 o Debian 12/13 - se detecta automáticamente)
 - **Token de DuckDNS** (obtenido desde [duckdns.org](https://www.duckdns.org))
 - **Subdominio registrado** en DuckDNS
 
@@ -209,7 +209,7 @@ Se creará el contenedor con esta configuración:
 ### 🔧 Lo que Hace el Script
 
 1. ✅ Crea el contenedor LXC automáticamente
-2. ✅ Detecta y usa el mejor template disponible (Ubuntu 22.04 o Debian 12)
+2. ✅ Detecta y usa el mejor template disponible (Ubuntu 22.04 o Debian 12/13)
 3. ✅ Configura la red y almacenamiento
 4. ✅ Instala y configura DuckDNS
 5. ✅ Configura cron para actualización automática cada 5 minutos

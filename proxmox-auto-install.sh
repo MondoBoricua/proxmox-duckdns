@@ -90,8 +90,8 @@ if [[ "$LANG" == "es" ]]; then
     TXT_STEP_AUTO="Paso 7/8: Configurando autologin para la consola..."
     TXT_STEP_RESTART="Paso 8/8: Reiniciando contenedor para aplicar configuración..."
     TXT_USING_UBUNTU="Usando template de Ubuntu 22.04:"
-    TXT_USING_DEBIAN="Usando template de Debian 12:"
-    TXT_DEBIAN_NOTE="Nota: Se está usando Debian 12 porque Ubuntu 22.04 no está disponible"
+    TXT_USING_DEBIAN="Usando template de Debian:"
+    TXT_DEBIAN_NOTE="Nota: Se está usando Debian porque Ubuntu 22.04 no está disponible"
     TXT_USING_OTHER="Usando template disponible:"
     TXT_OTHER_NOTE="Nota: Se está usando el template más reciente disponible"
     TXT_DOWNLOADING="No se encontraron templates. Descargando Ubuntu 22.04..."
@@ -165,8 +165,8 @@ else
     TXT_STEP_AUTO="Step 7/8: Configuring console autologin..."
     TXT_STEP_RESTART="Step 8/8: Restarting container to apply configuration..."
     TXT_USING_UBUNTU="Using Ubuntu 22.04 template:"
-    TXT_USING_DEBIAN="Using Debian 12 template:"
-    TXT_DEBIAN_NOTE="Note: Using Debian 12 because Ubuntu 22.04 is not available"
+    TXT_USING_DEBIAN="Using Debian template:"
+    TXT_DEBIAN_NOTE="Note: Using Debian because Ubuntu 22.04 is not available"
     TXT_USING_OTHER="Using available template:"
     TXT_OTHER_NOTE="Note: Using the most recent available template"
     TXT_DOWNLOADING="No templates found. Downloading Ubuntu 22.04..."
@@ -437,8 +437,8 @@ TEMPLATE=$(pct template list | grep -i ubuntu | grep -E "(22\.04|22-04)" | head 
 if [ -n "$TEMPLATE" ]; then
     show_success "$TXT_USING_UBUNTU $TEMPLATE"
 else
-    # Si no hay Ubuntu, buscar Debian 12
-    TEMPLATE=$(pct template list | grep -i debian | grep -E "(12|12\.)" | head -1 | awk '{print $2}')
+    # Si no hay Ubuntu, buscar Debian 12 o 13
+    TEMPLATE=$(pct template list | grep -i debian | grep -E "(1[23]|1[23]\.)" | head -1 | awk '{print $2}')
     if [ -n "$TEMPLATE" ]; then
         show_success "$TXT_USING_DEBIAN $TEMPLATE"
         show_info "$TXT_DEBIAN_NOTE"
