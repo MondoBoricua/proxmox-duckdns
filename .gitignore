@@ -23,4 +23,8 @@ Thumbs.db
 
 # Archivos de backup
 *.bak
-*.backup 
+*.backup
+
+# Claude Code
+claude.md
+.claude/
