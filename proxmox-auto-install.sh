@@ -295,11 +295,14 @@ select_option() {
 
 # Función para obtener el siguiente ID disponible
 get_next_available_id() {
-    local next_id=100
-    while pct status $next_id &> /dev/null; do
-        ((next_id++))
-    done
-    echo $next_id
+    # Obtener el ID más alto de contenedores existentes
+    local max_id=$(pct list 2>/dev/null | tail -n +2 | awk '{print $1}' | sort -n | tail -1)
+
+    if [ -z "$max_id" ]; then
+        echo 100
+    else
+        echo $((max_id + 1))
+    fi
 }
 
 show_header
