@@ -597,16 +597,16 @@ run_in_container "apt autoremove -y && apt autoclean"
 # Crear script de información avanzado dentro del contenedor
 run_in_container "cat > /root/duckdns-info.sh << 'EOF'
 #!/bin/bash
-echo \"🦆 ===== INFORMACIÓN DUCKDNS =====\"
-echo \"Dominio: $DUCKDNS_DOMAIN.duckdns.org\"
-echo \"Estado del servicio cron:\"
+echo \"===== DUCKDNS INFO =====\"
+echo \"Domain: $DUCKDNS_DOMAIN.duckdns.org\"
+echo \"Cron service status:\"
 systemctl status cron --no-pager -l
 echo \"\"
-echo \"Última actualización:\"
-cat ~/duckdns.log 2>/dev/null || echo \"No hay log disponible\"
+echo \"Last update:\"
+cat ~/duckdns.log 2>/dev/null || echo \"No log available\"
 echo \"\"
-echo \"Para ver logs en tiempo real: tail -f ~/duckdns.log\"
-echo \"Para actualizar manualmente: /opt/duckdns/duck.sh\"
+echo \"View logs: tail -f ~/duckdns.log\"
+echo \"Manual update: /opt/duckdns/duck.sh\"
 EOF"
 
 run_in_container "chmod +x /root/duckdns-info.sh"
@@ -620,81 +620,85 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
 
-echo -e \"${BLUE}\"
-echo \"🦆 ===== DUCKDNS LXC CONTAINER =====\"
-echo -e \"${NC}\"
+echo \"\"
+echo -e \"\${CYAN}============================================\${NC}\"
+echo -e \"\${CYAN}       DUCKDNS LXC CONTAINER\${NC}\"
+echo -e \"\${CYAN}============================================\${NC}\"
+echo \"\"
 
 # Información del dominio
-echo -e \"${GREEN}🌐 Dominio:${NC} $DUCKDNS_DOMAIN.duckdns.org\"
+echo -e \"\${GREEN}[Domain]\${NC} $DUCKDNS_DOMAIN.duckdns.org\"
 
 # Obtener IP actual del servidor
-CURRENT_IP=\$(curl -s ifconfig.me 2>/dev/null || echo \"No disponible\")
-echo -e \"${GREEN}📡 IP Actual del Servidor:${NC} \$CURRENT_IP\"
+CURRENT_IP=\$(curl -s ifconfig.me 2>/dev/null || echo \"Unavailable\")
+echo -e \"\${GREEN}[Server IP]\${NC} \$CURRENT_IP\"
 
 # Verificar última actualización
 if [ -f ~/duckdns.log ]; then
     LAST_UPDATE=\$(stat -c %y ~/duckdns.log 2>/dev/null | cut -d. -f1)
     LAST_RESULT=\$(cat ~/duckdns.log 2>/dev/null)
-    
-    echo -e \"${GREEN}🕐 Última Actualización:${NC} \$LAST_UPDATE\"
-    
+
+    echo -e \"\${GREEN}[Last Update]\${NC} \$LAST_UPDATE\"
+
     if [[ \"\$LAST_RESULT\" == *\"OK\"* ]]; then
-        echo -e \"${GREEN}✅ Estado:${NC} Actualización exitosa\"
+        echo -e \"\${GREEN}[Status]\${NC} OK - Update successful\"
     elif [[ \"\$LAST_RESULT\" == *\"KO\"* ]]; then
-        echo -e \"${RED}❌ Estado:${NC} Error en la actualización\"
+        echo -e \"\${RED}[Status]\${NC} ERROR - Update failed\"
     else
-        echo -e \"${YELLOW}⚠️  Estado:${NC} Resultado desconocido: \$LAST_RESULT\"
+        echo -e \"\${YELLOW}[Status]\${NC} Unknown: \$LAST_RESULT\"
     fi
-    
+
     # Mostrar historial de las últimas 3 actualizaciones
     if [ -f /var/log/duckdns/detailed.log ]; then
-        echo -e \"${BLUE}📈 Últimas actualizaciones:${NC}\"
+        echo \"\"
+        echo -e \"\${BLUE}[Recent Updates]\${NC}\"
         tail -n 3 /var/log/duckdns/detailed.log | while read line; do
             if [[ \"\$line\" == *\"OK\"* ]]; then
-                echo -e \"  ${GREEN}✓${NC} \$line\"
+                echo -e \"  \${GREEN}+\${NC} \$line\"
             elif [[ \"\$line\" == *\"KO\"* ]]; then
-                echo -e \"  ${RED}✗${NC} \$line\"
+                echo -e \"  \${RED}x\${NC} \$line\"
             else
-                echo -e \"  ${YELLOW}?${NC} \$line\"
+                echo -e \"  \${YELLOW}?\${NC} \$line\"
             fi
         done
     fi
 else
-    echo -e \"${YELLOW}⚠️  Estado:${NC} No hay actualizaciones registradas\"
+    echo -e \"\${YELLOW}[Status]\${NC} No updates recorded yet\"
 fi
+
+echo \"\"
 
 # Verificar si cron está funcionando
 if systemctl is-active --quiet cron; then
-    echo -e \"${GREEN}🔄 Servicio Cron:${NC} Activo (actualiza cada 5 minutos)\"
+    echo -e \"\${GREEN}[Cron]\${NC} Active (updates every 5 min)\"
 else
-    echo -e \"${RED}❌ Servicio Cron:${NC} Inactivo\"
+    echo -e \"\${RED}[Cron]\${NC} Inactive\"
 fi
 
 # Verificar resolución DNS
 DNS_IP=\$(nslookup $DUCKDNS_DOMAIN.duckdns.org 2>/dev/null | grep -A1 \"Name:\" | grep \"Address:\" | awk '{print \$2}' | head -1)
 if [ -n \"\$DNS_IP\" ]; then
-    echo -e \"${GREEN}🔍 DNS Resuelve a:${NC} \$DNS_IP\"
+    echo -e \"\${GREEN}[DNS]\${NC} Resolves to: \$DNS_IP\"
     if [ \"\$DNS_IP\" = \"\$CURRENT_IP\" ]; then
-        echo -e \"${GREEN}✅ DNS Sincronizado:${NC} IP coincide\"
+        echo -e \"\${GREEN}[Sync]\${NC} OK - IPs match\"
     else
-        echo -e \"${YELLOW}⚠️  DNS Desactualizado:${NC} IP no coincide\"
+        echo -e \"\${YELLOW}[Sync]\${NC} Warning - IPs differ\"
     fi
 else
-    echo -e \"${RED}❌ DNS:${NC} No se pudo resolver el dominio\"
+    echo -e \"\${RED}[DNS]\${NC} Could not resolve domain\"
 fi
 
 echo \"\"
-echo -e \"${BLUE}📋 Comandos útiles:${NC}\"
-echo \"  • Ver logs en tiempo real: tail -f ~/duckdns.log\"
-echo \"  • Ver historial completo: tail -f /var/log/duckdns/detailed.log\"
-echo \"  • Actualizar ahora: /opt/duckdns/duck.sh\"
-echo \"  • Ver info completa: /root/duckdns-info.sh\"
-echo \"  • Estado cron: systemctl status cron\"
-echo \"  • Mostrar esta info: duckdns\"
-echo \"\"
-echo -e \"${BLUE}🚀 Desarrollado con ❤️ para la comunidad de Proxmox${NC}\"
+echo -e \"\${CYAN}--------------------------------------------\${NC}\"
+echo -e \"\${BOLD}Commands:\${NC}\"
+echo \"  duckdns              - Show this info\"
+echo \"  /opt/duckdns/duck.sh - Manual update\"
+echo \"  tail -f ~/duckdns.log - Live logs\"
+echo -e \"\${CYAN}--------------------------------------------\${NC}\"
 echo \"\"
 EOF"
 
